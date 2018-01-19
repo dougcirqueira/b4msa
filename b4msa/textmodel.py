@@ -55,6 +55,7 @@ class EmoticonClassifier:
         self.emolen = [self.emolen.get(i, {}) for i in range(maxlen+1)]
 
     def replace(self, text, option=OPTION_GROUP):
+        # DOUGLAS - Set Emoticon option to GROUP
         if option == OPTION_NONE:
             return text
 
@@ -75,6 +76,7 @@ class EmoticonClassifier:
                         code = _text[i:i+lcode]
                         klass = self.emolen[lcode].get(code, None)
 
+                        # DOUGLAS - OPTION_DELETE IS FALSE
                         if klass:
                             if option == OPTION_DELETE:
                                 klass = ''
@@ -120,6 +122,7 @@ def norm_chars(text, strip_diac=True, del_dup1=True):
         if u in ('\n', '\r', ' ', '\t'):
             u = '~'
 
+        # DOUGLAS - TODO Modify here for allowing only two occurences of a token for emphasis
         if del_dup1 and prev == u:
             continue
 
@@ -165,15 +168,24 @@ class TextModel:
                  **kwargs
     ):
         self.strip_diac = strip_diac
+        # DOUGLAS - Change all options to group
+        """
         self.num_option = num_option
         self.usr_option = usr_option
         self.url_option = url_option
         self.emo_option = emo_option
+        """
+        self.num_option = OPTION_GROUP
+        self.usr_option = OPTION_GROUP
+        self.url_option = OPTION_GROUP
+        self.emo_option = OPTION_GROUP
         self.emoclassifier = EmoticonClassifier()
         self.lc = lc
         self.del_dup1 = del_dup1
         self.token_list = token_list
 
+        # DOUGLAS - Set up the self.lang to Brazilian Portuguese
+        self.lang = "portuguese"
         if lang:
             self.lang = LangDependency(lang)
         else:
@@ -217,9 +229,12 @@ class TextModel:
         if text is None:
             text = ''
 
-        if self.lc:
+        # DOUGLAS - set to True
+        #if self.lc:
+        if True:
             text = text.lower()
 
+        # DOUGLAS - set to True all options that are for GROUP
         if self.num_option == OPTION_DELETE:
             text = re.sub(r"\d+\.?\d+", "", text)
         elif self.num_option == OPTION_GROUP:
@@ -235,10 +250,16 @@ class TextModel:
         elif self.usr_option == OPTION_GROUP:
             text = re.sub(r"@\S+", "_usr", text)
 
+        # DOUGLAS - TODO within norm_chars(text, self.strip_diac)
         text = norm_chars(text, self.strip_diac)
-        text = self.emoclassifier.replace(text, self.emo_option)
+        # DOUGLAS - emo_options is GROUP
+        #text = self.emoclassifier.replace(text, self.emo_option)
+        text = self.emoclassifier.replace(text, OPTION_GROUP)
 
-        if self.lang:
+        # DOUGLAS - Specific language processing is True
+        #if self.lang:
+        # CONTINUE HERE!!!
+        if True:
             text = self.lang.transform(text, **self.kwargs)
             
         L = []

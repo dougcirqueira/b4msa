@@ -69,12 +69,14 @@ class LangDependency():
         """
         Initializes the parameters for specific language
         """
-        self.languages = ["spanish", "english", "italian", "german"]
+        # DOUGLAS - Included "brazilian_portuguese" language in self.languages
+        self.languages = ["spanish", "english", "italian", "german", "portuguese"]
         self.lang = lang
 
         if self.lang not in self.languages:
             raise LangDependencyError("Language not supported: " + lang)
         
+        # DOUGLAS - TODO Implement negstopwords and negation for Brazilian Portuguese
         self.stopwords = LangDependency.STOPWORDS_CACHE.get(lang, None)
         if self.stopwords is None:
             self.stopwords = self.load_stopwords(os.path.join(PATH, "{0}.stopwords".format(lang)))
@@ -256,7 +258,40 @@ class LangDependency():
         # removes extra spaces because of transformations 
         text = re.sub(r"\s+", r" ", text, flags=re.I)
         return text.replace(' ', '~')
-    
+
+    # DOUGLAS - portuguese_negation()
+    def portuguese_negation(self, text):
+        """
+        Standarizes negation sentences, nouns are also considering with the operator "sin" (without)
+        Markers like ninguno, ningún, nadie are considered as another word.
+        """
+        if getattr(self, 'skip_words', None) is None:
+            self.skip_words = "eu|voce|isso|isto|o que|ele|ela|eles|elas|nos|o|a"
+            # DOUGLAS - TODO Implement neg.stopwords list in the files
+            self.skip_words = self.skip_words + "|" + "|".join(self.neg_stopwords)
+
+        text = text.replace('~', ' ')
+        tags = _sURL_TAG + "|" + _sUSER_TAG + "|" + _sENTITY_TAG + "|" + \
+               _sHASH_TAG + "|" + \
+               _sNUM_TAG + "|" + _sNEGATIVE + "|" + \
+               _sPOSITIVE + "|" + _sNEUTRAL + "|"
+        
+        # unifies negation markers under the "nao" marker 
+        text = re.sub(r"\b(jam[aá]is|nunca|sem|nem|nada)\b", " nao ", text, flags=re.I)
+        # reduces to unique negation marker        
+        text = re.sub(r"\b(jam[aá]is|nunca|sem|nao|nada)(\s+\1)+", r"\1", text, flags=re.I)
+        p1 = re.compile(r"(?P<neg>((\s+|\b|^)nao))(?P<sk_words>(\s+(" +
+                        self.skip_words + "|" + tags + r"))*)\s+(?P<text>(?!(" +
+                        tags + ")(\s+|\b|$)))", flags=re.I)
+        m = p1.search(text)
+        if m:
+            text = p1.sub(r"\g<sk_words> \g<neg>_\g<text>", text)
+        # removes isolated marks "nao_" if marks appear because of negation rules
+        text = re.sub(r"\b(nao_)\b", r" nao ", text, flags=re.I)
+        # removes extra spaces because of transformations 
+        text = re.sub(r"\s+", r" ", text, flags=re.I)
+        return text.replace(' ', '~')
+
     def filterStopWords(self, text, stopwords_option):
         if stopwords_option != 'none':
             for sw in self.stopwords:
@@ -267,6 +302,7 @@ class LangDependency():
 
         return text
     
+    # DOUGLAS - TODO Implement other pre-processing steps here (speelling correction, lemmatizing)
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
         if negation:
             text = self.negation(text)
