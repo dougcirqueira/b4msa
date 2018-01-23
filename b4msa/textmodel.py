@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2016 Eric S. Tellez
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+import sys
+reload(sys)  
+sys.setdefaultencoding('utf8')
+
 import re
 import os
 import unicodedata
@@ -113,7 +120,7 @@ def norm_chars(text, strip_diac=True, del_dup1=True):
     L = ['~']
 
     prev = '~'
-    for u in unicodedata.normalize('NFD', text):
+    for u in unicodedata.normalize('NFD', unicode(text)):
         if strip_diac:
             o = ord(u)
             if 0x300 <= o and o <= 0x036F:
@@ -185,7 +192,8 @@ class TextModel:
         self.token_list = token_list
 
         # DOUGLAS - Set up the self.lang to Brazilian Portuguese
-        self.lang = "portuguese"
+        #self.lang = "portuguese"
+        
         if lang:
             self.lang = LangDependency(lang)
         else:

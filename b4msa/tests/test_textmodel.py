@@ -156,3 +156,6 @@ def test_negations_italian():
     print("Output:", a)
     b = ['_usr', 'com', 'no_condividere', 'me', 'no_freg', 'nient']
     assert a == b
+
+if __name__ == '__main__':
+    test_lang()

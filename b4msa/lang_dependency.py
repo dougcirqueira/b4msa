@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2016 Sabino Miranda-Jiménez and Daniela Moctezuma
 # with collaborations of Eric S. Tellez
 
@@ -13,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# -*- coding: utf-8 -*-
+
+import sys
 
 import io
 import re
@@ -144,6 +146,22 @@ class LangDependency():
 
         return text
 
+    def error_correction(self, text):
+        """
+        Applies error correction process to the given text
+        """
+        if self.lang not in self.languages:
+            raise LangDependencyError("Error Correction - language not defined")
+        
+        if self.lang == "portuguese":
+            text = self.portuguese_correction(text)
+        elif self.lang == "spanish":
+            raise LangDependencyError("Error Correction - language not implemented for error correction")
+        elif self.lang == "english":
+            raise LangDependencyError("Error Correction - language not implemented for error correction")
+        elif self.lang == "italian":
+            raise LangDependencyError("Error Correction - language not implemented for error correction")
+
     def spanish_negation(self, text):
         """
         Standarizes negation sentences, nouns are also considering with the operator "sin" (without)
@@ -225,31 +243,31 @@ class LangDependency():
 
     def italian_negation(self, text):
         
-		
+        
         if getattr(self, 'skip_words', None) is None:
             self.skip_words = "mi|ti|lo|gli|le|ne|li|glieli|glielo|gliela|gliene|gliele"
             self.skip_words = self.skip_words + "|" + "|".join(self.neg_stopwords)
             
-		
+        
        
         text = text.replace('~', ' ')
         tags = _sURL_TAG + "|" + _sUSER_TAG + "|" + _sENTITY_TAG + "|" + \
                _sHASH_TAG + "|" + \
                _sNUM_TAG + "|" + _sNEGATIVE + "|" + \
                _sPOSITIVE + "|" + _sNEUTRAL + "|"
-		
+        
  
         # unifies negation markers under the "no" marker                
         text = re.sub(r"\b(mai|senza|non|no|né|ne)\b", " no ", text, flags=re.I)
-		
-        # reduces to unique negation marker   		
+        
+        # reduces to unique negation marker         
         text = re.sub(r"\b(mai|senza|non|no|né|ne)(\s+\1)+", r"\1", text, flags=re.I)
-		
+        
         p1 = re.compile(r"(?P<neg>((\s+|\b|^)no))(?P<sk_words>(\s+(" +
                         self.skip_words + "|" + tags + r"))*)\s+(?P<text>(?!(" +
                         tags + ")(\s+|\b|$)))", flags=re.I)
         
-        m = p1.search(text)	
+        m = p1.search(text) 
         
         if m:
             text = p1.sub(r"\g<sk_words> \g<neg>_\g<text>", text)
@@ -301,8 +319,19 @@ class LangDependency():
                     text = re.sub(r"\b(" + sw + r")\b", r"~_sw~", text, flags=re.I)
 
         return text
+
+    # DOUGLAS - TODO Implement portuguese_correction
+    def portuguese_correction(self, text):
+        # Step 1: Check if each word is valid from the Portuguese dictionary from Freeling
+        tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
+        #for t in tokens:
+        #    if token not in 
+
+        # Step 2: Reduce words with valid rules for Portuguese words formation
+
+        # Step 3: Abbreviation expansion
     
-    # DOUGLAS - TODO Implement other pre-processing steps here (speelling correction, lemmatizing)
+    # DOUGLAS - TODO Implement other pre-processing steps here (portuguese correction, lemmatizing)
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
         if negation:
             text = self.negation(text)

@@ -16,6 +16,7 @@ import json
 import gzip
 import logging
 from sklearn.metrics import f1_score
+import io
 logging.basicConfig(format='%(asctime)s : %(levelname)s :%(message)s')
 
 
@@ -32,7 +33,8 @@ def tweet_iterator(filename):
             print("WARNING! File extension not supported (" + filename.split(".")[-1] + ")")
             print("Assuming JSON format: {\"text\":, \"klass\":}")
         # Open the file...
-        f = open(filename, encoding='utf8')
+        #f = open(filename, encoding='utf8')
+        f = io.open(filename, encoding='utf-8')
 
     # Start the iterator...
     while True:
@@ -40,7 +42,8 @@ def tweet_iterator(filename):
         line = f.readline()
         # Test the type of the line and encode it if neccesary...
         if type(line) is bytes:
-            line = str(line, encoding='utf8')
+            #line = str(line, encoding='utf8')
+            line = str(line)
         # If the line is empty, we are done...
         if len(line) == 0:
             break
