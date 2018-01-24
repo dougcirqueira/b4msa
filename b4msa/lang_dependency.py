@@ -66,6 +66,8 @@ class LangDependency():
     """
     STOPWORDS_CACHE = {}
     NEG_STOPWORDS_CACHE = {}
+    DICTIONARY_WORDS_CACHE = {}
+    ABBREVIATION_WORDS_CACHE = {}
 
     def __init__(self, lang="spanish"):
         """
@@ -74,6 +76,8 @@ class LangDependency():
         # DOUGLAS - Included "brazilian_portuguese" language in self.languages
         self.languages = ["spanish", "english", "italian", "german", "portuguese"]
         self.lang = lang
+        self.correction = True
+        self.lemmatizing = True
 
         if self.lang not in self.languages:
             raise LangDependencyError("Language not supported: " + lang)
@@ -96,13 +100,25 @@ class LangDependency():
         else:
             self.stemmer = SnowballStemmer(self.lang)
 
+        self.dictionary_words = LangDependency.DICTIONARY_WORDS_CACHE.get(lang, None)
+        if self.dictionary_words is None:
+            # DOUGLAS - Although not being stopwords, the same method for loading stopwords is applicable.
+            self.dictionary_words = self.load_stopwords(os.path.join(PATH, "{0}.dictionary".format(lang)))
+            LangDependency.DICTIONARY_WORDS_CACHE[lang] = self.dictionary_words
+
+        self.abbreviation_words = LangDependency.ABBREVIATION_WORDS_CACHE.get(lang, None)
+        if self.abbreviation_words is None:
+            # DOUGLAS - Load abbreviations from a file
+            self.abbreviation_words = self.load_abbreviations(os.path.join(PATH, "{0}.abbreviations".format(lang)))
+            LangDependency.ABBREVIATION_WORDS_CACHE[lang] = self.abbreviation_words
+
     def load_stopwords(self, fileName):
         """
         it loads stopwords from file
         """
         logger.debug("loading stopwords... " + fileName)
         if not os.path.isfile(fileName):
-            raise LangDependencyError("File not found: " + fileName)                             
+            raise LangDependencyError("File not found: " + fileName)                            
         
         StopWords = []
         with io.open(fileName, encoding='utf8') as f:
@@ -115,6 +131,28 @@ class LangDependency():
                 StopWords.append(line)
 
         return StopWords
+
+    def load_abbreviations(self, fileName):
+        """
+        it loads abbreviations from file
+        """
+        logger.debug("loading abbreviations... " + fileName)
+        if not os.path.isfile(fileName):
+            raise LangDependencyError("File not found: " + fileName)                             
+        
+        Abbreviations = {}
+        with io.open(fileName, encoding='utf8') as f:
+            for line in f.readlines():
+                line = line.strip().lower()
+                if line == "":
+                    continue
+                if line.startswith("#"):
+                    continue
+
+                abb, exp = line.split("\t")
+                Abbreviations[abb] = exp
+
+        return Abbreviations
                 
     def stemming(self, text):
         """
@@ -129,6 +167,10 @@ class LangDependency():
             else:
                 t.append(self.stemmer.stem(tok))
         return "~".join(t)
+
+    # DOUGLAS - TODO Implement lemmatizing for portuguese with freeling. Extract only lemmas from Freeling response
+    def lemmatizing(self, text):
+        pass
 
     def negation(self, text):
         """
@@ -320,24 +362,38 @@ class LangDependency():
 
         return text
 
-    # DOUGLAS - TODO Implement portuguese_correction
     def portuguese_correction(self, text):
-        # Step 1: Check if each word is valid from the Portuguese dictionary from Freeling
+        # DOUGLAS - Check if each word is valid from the Portuguese dictionary from Freeling
         tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
-        #for t in tokens:
-        #    if token not in 
+        t = []
+        for tok in tokens:
+            if tok in self.dictionary_words:
+                t.append(tok)
+            elif tok in self.abbreviation_words.keys():
+                expansion = self.abbreviation_words[tok]
+                tokens_in_expansion = expansion.split(" ")
+                for token in tokens_in_expansion:
+                    t.append(token)
+            else:
+                # DOUGLAS - TODO: Reduce words with valid rules for Portuguese words formation
+                t.append(tok)
 
-        # Step 2: Reduce words with valid rules for Portuguese words formation
-
-        # Step 3: Abbreviation expansion
+        return "~".join(t)
     
     # DOUGLAS - TODO Implement other pre-processing steps here (portuguese correction, lemmatizing)
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
+
         if negation:
             text = self.negation(text)
 
         if stemming:
             text = self.stemming(text)
+
+        if self.correction:
+            text = self.error_correction(text)
+
+        if self.lemmatizing:
+            text = self.lemmatizing(text)
 
         text = self.filterStopWords(text, stopwords)
         return text

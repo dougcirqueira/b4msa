@@ -8,3 +8,5 @@ include b4msa/resources/italian.stopwords
 include b4msa/resources/italian.neg.stopwords
 include b4msa/resources/portuguese.neg.stopwords
 include b4msa/resources/portuguese.stopwords
+include b4msa/resources/portuguese.dictionary
+include b4msa/resources/portuguese.abbreviations
