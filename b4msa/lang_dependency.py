@@ -16,6 +16,8 @@
 
 
 import sys
+from pyfreeling import Analyzer
+from bs4 import BeautifulSoup
 
 import io
 import re
@@ -168,9 +170,22 @@ class LangDependency():
                 t.append(self.stemmer.stem(tok))
         return "~".join(t)
 
-    # DOUGLAS - TODO Implement lemmatizing for portuguese with freeling. Extract only lemmas from Freeling response
+    # DOUGLAS - Lemmatizing for portuguese with freeling. Extract only lemmas from Freeling response
     def lemmatizing(self, text):
-        pass
+        """
+        Applies lemmatizing process to the given text
+        """
+        if self.lang not in self.languages:
+            raise LangDependencyError("Lemmatizing - language not defined")
+        
+        if self.lang == "portuguese":
+            text = self.portuguese_lemmatizing(text)
+        elif self.lang == "spanish":
+            raise LangDependencyError("Lemmatizing - language not implemented for lemmatizing")
+        elif self.lang == "english":
+            raise LangDependencyError("Lemmatizing - language not implemented for lemmatizing")
+        elif self.lang == "italian":
+            raise LangDependencyError("Lemmatizing - language not implemented for lemmatizing")
 
     def negation(self, text):
         """
@@ -352,6 +367,7 @@ class LangDependency():
         text = re.sub(r"\s+", r" ", text, flags=re.I)
         return text.replace(' ', '~')
 
+    # DOUGLAS - TODO Filter stop words by PoS tag
     def filterStopWords(self, text, stopwords_option):
         if stopwords_option != 'none':
             for sw in self.stopwords:
@@ -361,6 +377,10 @@ class LangDependency():
                     text = re.sub(r"\b(" + sw + r")\b", r"~_sw~", text, flags=re.I)
 
         return text
+
+    # DOUGLAS - TODO Implement filter by entities
+    def filter_entities(self, text):
+        pass
 
     def portuguese_correction(self, text):
         # DOUGLAS - Check if each word is valid from the Portuguese dictionary from Freeling
@@ -379,6 +399,27 @@ class LangDependency():
                 t.append(tok)
 
         return "~".join(t)
+
+    # DOUGLAS - Performs lemmatizing plus Part-of-Speech tagging, provinding word/pos_tag
+    def portuguese_lemmatizing(self, text):
+        tokens = re.split(r"~", text.strip())
+        new_text = " ".join(tokens)
+        t = []
+
+        analyzer = Analyzer(config='freeling_config.cfg', lang='pt')
+        xml = analyzer.run(new_text, 'noflush')
+        xml_string = etree.tostring(xml)
+        y = BeautifulSoup(xml_string, "lxml")
+
+        total_tokens = len(y.sentences.sentence.findAll("token"))
+
+        for i in range(0,total_tokens):
+            lemma = y.sentences.sentence.findAll("token")[i].analysis["lemma"]
+            pos = y.sentences.sentence.findAll("token")[i].analysis["tag"]
+            new_token = "/".join([lemma, pos])
+            t.append(new_token)
+
+        return "~".join(t)
     
     # DOUGLAS - TODO Implement other pre-processing steps here (portuguese correction, lemmatizing)
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
@@ -394,6 +435,8 @@ class LangDependency():
 
         if self.lemmatizing:
             text = self.lemmatizing(text)
+
+        # Douglas - TODO Detect and remove entities if defined
 
         text = self.filterStopWords(text, stopwords)
         return text
