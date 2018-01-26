@@ -80,6 +80,7 @@ class LangDependency():
         self.lang = lang
         self.correction = True
         self.lemmatizing = True
+        self.del_ent = True
 
         if self.lang not in self.languages:
             raise LangDependencyError("Language not supported: " + lang)
@@ -367,7 +368,6 @@ class LangDependency():
         text = re.sub(r"\s+", r" ", text, flags=re.I)
         return text.replace(' ', '~')
 
-    # DOUGLAS - TODO Filter stop words by PoS tag
     def filterStopWords(self, text, stopwords_option):
         if stopwords_option != 'none':
             for sw in self.stopwords:
@@ -378,9 +378,36 @@ class LangDependency():
 
         return text
 
-    # DOUGLAS - TODO Implement filter by entities
+    # DOUGLAS - Filter stop words also by PoS tag
+    def filter_stopwords_pos(self, text, stopwords_option):
+        tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
+        t = []
+        if stopwords_option == 'delete':
+            for tok in tokens:
+                token, tag = tok.split("/")
+                if token in self.stopwords or tag.startswith("D") or tag.startswith("P"):
+                    continue
+                else:
+                    t.append(tok)
+        elif stopwords_option == 'group':
+            for tok in tokens:
+                token, tag = tok.split("/")
+                if token in self.stopwords or tag.startswith("D") or tag.startswith("P"):
+                    t.append("_sw" + "/" + tag)
+                else:
+                    t.append(tok)
+
+        return "~".join(t)
+
     def filter_entities(self, text):
-        pass
+        tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
+        t = []
+        for tok in tokens:
+            token, tag = tok.split("/")
+            if tag != "NP0000":
+                t.append(tok)
+
+        return "~".join(t)
 
     def portuguese_correction(self, text):
         # DOUGLAS - Check if each word is valid from the Portuguese dictionary from Freeling
@@ -420,6 +447,16 @@ class LangDependency():
             t.append(new_token)
 
         return "~".join(t)
+
+    # DOUGLAS - Remove lexical information
+    def remove_lexical_info(self, text):
+        tokens = re.split(r"~", text.strip())
+        t = []
+        for tok in tokens:
+            token, tag = tok.split("/")
+            t.append(token)
+
+        return "~".join(t)
     
     # DOUGLAS - TODO Implement other pre-processing steps here (portuguese correction, lemmatizing)
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
@@ -436,7 +473,11 @@ class LangDependency():
         if self.lemmatizing:
             text = self.lemmatizing(text)
 
-        # Douglas - TODO Detect and remove entities if defined
+        if self.del_ent:
+            text = self.filter_entities(text)
 
-        text = self.filterStopWords(text, stopwords)
+        text = self.filter_stopwords_pos(text, stopwords)
+
+        text = self.remove_lexical_info(text)
+
         return text
