@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2016 Mario Graff (https://github.com/mgraffg)
 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,11 +79,13 @@ def test_emoticons():
 def test_lang():
     from b4msa.textmodel import TextModel
 
-    text = [
-        "Hi :) :P XD",
-        "excelente dia xc",
-        "el alma de la fiesta XD"
-    ]
+    #text = [
+    #    "Hi :) :P XD",
+    #    "excelente dia xc",
+    #    "el alma de la fiesta XD"
+    #]
+    text = ["tomar Eguaa! vai tomar no cu pq jamais vou deixar d lado! Realmente sem pe nem cabeca!! :("]
+
     model = TextModel(text, **{
         "del_dup1": True,
         "emo_option": "group",
@@ -91,20 +94,22 @@ def test_lang():
         "num_option": "group",
         "stemming": True,
         "stopwords": "group",
-        "strip_diac": False,
+        "strip_diac": True,
         "token_list": [
             -1,
             # 5,
         ],
         "url_option": "group",
         "usr_option": "group",
-        "lang": "spanish",
+        "lang": "portuguese",
     })
-    text = "El alma de la fiesta :) conociendo la maquinaria @user bebiendo nunca manches que onda"
+    #text = "El alma de la fiesta :) conociendo la maquinaria @user bebiendo nunca manches que onda"
+    text = "tomar Eguaa! vai tomar no cu pq jamais vou deixar d lado! Realmente sem pe nem cabeca!! :("
     a = model.tokenize(text)
     b = ['_sw', 'alma', '_sw', '_sw', 'fiest', '_pos', 'conoc', '_sw', 'maquinari', '_usr', 'beb', 'no_manch', '_sw', 'onda']
-    print(text)
-    assert a == b, "got: {0}, expected: {1}".format(a, b)
+    print a
+    #print(text)
+    #assert a == b, "got: {0}, expected: {1}".format(a, b)
 
 
 def test_negations():

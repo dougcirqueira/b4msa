@@ -18,6 +18,7 @@
 import sys
 from pyfreeling import Analyzer
 from bs4 import BeautifulSoup
+from lxml import etree
 
 import io
 import re
@@ -79,7 +80,7 @@ class LangDependency():
         self.languages = ["spanish", "english", "italian", "german", "portuguese"]
         self.lang = lang
         self.correction = True
-        self.lemmatizing = True
+        self.lem = True
         self.del_ent = True
 
         if self.lang not in self.languages:
@@ -106,7 +107,7 @@ class LangDependency():
         self.dictionary_words = LangDependency.DICTIONARY_WORDS_CACHE.get(lang, None)
         if self.dictionary_words is None:
             # DOUGLAS - Although not being stopwords, the same method for loading stopwords is applicable.
-            self.dictionary_words = self.load_stopwords(os.path.join(PATH, "{0}.dictionary".format(lang)))
+            self.dictionary_words = self.load_dictionary(os.path.join(PATH, "{0}.dictionary".format(lang)))
             LangDependency.DICTIONARY_WORDS_CACHE[lang] = self.dictionary_words
 
         self.abbreviation_words = LangDependency.ABBREVIATION_WORDS_CACHE.get(lang, None)
@@ -135,6 +136,28 @@ class LangDependency():
 
         return StopWords
 
+    def load_dictionary(self, fileName):
+        """
+        it loads stopwords from file
+        """
+        logger.debug("loading dictionary... " + fileName)
+        if not os.path.isfile(fileName):
+            raise LangDependencyError("File not found: " + fileName)                            
+        
+        Dictionary = []
+        with io.open(fileName, encoding='utf8') as f:
+            for line in f.readlines():
+                line = line.strip().lower()
+                if line == "":
+                    continue
+                if line.startswith("#"):
+                    continue
+                if re.match("[a-z]{1}", line, re.IGNORECASE):
+                    continue
+                Dictionary.append(line)
+
+        return Dictionary
+
     def load_abbreviations(self, fileName):
         """
         it loads abbreviations from file
@@ -153,6 +176,7 @@ class LangDependency():
                     continue
 
                 abb, exp = line.split("\t")
+                abb = abb.decode("utf-8")
                 Abbreviations[abb] = exp
 
         return Abbreviations
@@ -188,6 +212,8 @@ class LangDependency():
         elif self.lang == "italian":
             raise LangDependencyError("Lemmatizing - language not implemented for lemmatizing")
 
+        return text
+
     def negation(self, text):
         """
         Applies negation process to the given text
@@ -219,6 +245,8 @@ class LangDependency():
             raise LangDependencyError("Error Correction - language not implemented for error correction")
         elif self.lang == "italian":
             raise LangDependencyError("Error Correction - language not implemented for error correction")
+
+        return text
 
     def spanish_negation(self, text):
         """
@@ -380,6 +408,7 @@ class LangDependency():
 
     # DOUGLAS - Filter stop words also by PoS tag
     def filter_stopwords_pos(self, text, stopwords_option):
+        stopwords_option = 'group'
         tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
         t = []
         if stopwords_option == 'delete':
@@ -410,19 +439,27 @@ class LangDependency():
         return "~".join(t)
 
     def portuguese_correction(self, text):
+        print self.abbreviation_words.keys()
+
+        #sys.exit()
+
         # DOUGLAS - Check if each word is valid from the Portuguese dictionary from Freeling
         tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
         t = []
         for tok in tokens:
+            print "TOKEN: %s" % tok
             if tok in self.dictionary_words:
+                print "STAND TOKEN: %s" % tok
                 t.append(tok)
-            elif tok in self.abbreviation_words.keys():
+            elif tok.strip() in self.abbreviation_words.keys():
+                print "ABBREVI TOKEN: %s" % tok
                 expansion = self.abbreviation_words[tok]
                 tokens_in_expansion = expansion.split(" ")
                 for token in tokens_in_expansion:
                     t.append(token)
             else:
                 # DOUGLAS - TODO: Reduce words with valid rules for Portuguese words formation
+                print "ERROR TOKEN: %s" % tok
                 t.append(tok)
 
         return "~".join(t)
@@ -433,18 +470,32 @@ class LangDependency():
         new_text = " ".join(tokens)
         t = []
 
-        analyzer = Analyzer(config='freeling_config.cfg', lang='pt')
+        analyzer = Analyzer(config='pt.cfg', lang='pt')
         xml = analyzer.run(new_text, 'noflush')
         xml_string = etree.tostring(xml)
+        #print "XML_STRING"
+        #print xml_string
+
         y = BeautifulSoup(xml_string, "lxml")
+
+        #print "Y BEAUTISOUP"
+        #print y
+
+
 
         total_tokens = len(y.sentences.sentence.findAll("token"))
 
+        #print total_tokens
+
         for i in range(0,total_tokens):
-            lemma = y.sentences.sentence.findAll("token")[i].analysis["lemma"]
-            pos = y.sentences.sentence.findAll("token")[i].analysis["tag"]
+            #lemma = y.sentences.sentence.findAll("token")[i].analysis["lemma"]
+            #pos = y.sentences.sentence.findAll("token")[i].analysis["tag"]
+            lemma = y.sentences.sentence.findAll("token")[i]["lemma"]
+            pos = y.sentences.sentence.findAll("token")[i]["tag"]
             new_token = "/".join([lemma, pos])
             t.append(new_token)
+
+        #sys.exit()
 
         return "~".join(t)
 
@@ -464,20 +515,50 @@ class LangDependency():
         if negation:
             text = self.negation(text)
 
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Negation:"
+        print text
+
         if stemming:
             text = self.stemming(text)
+
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Stemming:"
+        print text
 
         if self.correction:
             text = self.error_correction(text)
 
-        if self.lemmatizing:
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Error Correction:"
+        print text
+
+        if self.lem:
             text = self.lemmatizing(text)
+
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Lemmmatizing:"
+        print text
 
         if self.del_ent:
             text = self.filter_entities(text)
 
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Entitities Filtering:"
+        print text
+
         text = self.filter_stopwords_pos(text, stopwords)
 
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Stopwords filtering:"
+        print text
+
         text = self.remove_lexical_info(text)
+
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Lexical Info Removal:"
+        print text
+
+        #sys.exit()
 
         return text

@@ -192,7 +192,7 @@ class TextModel:
         self.token_list = token_list
 
         # DOUGLAS - Set up the self.lang to Brazilian Portuguese
-        #self.lang = "portuguese"
+        self.lang = "portuguese"
         
         if lang:
             self.lang = LangDependency(lang)
