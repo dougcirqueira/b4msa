@@ -227,6 +227,8 @@ class LangDependency():
             text = self.english_negation(text)
         elif self.lang == "italian":
             text = self.italian_negation(text)
+        elif self.lang == "portuguese":
+            text = self.portuguese_negation(text)
 
         return text
 
@@ -379,6 +381,9 @@ class LangDependency():
                _sHASH_TAG + "|" + \
                _sNUM_TAG + "|" + _sNEGATIVE + "|" + \
                _sPOSITIVE + "|" + _sNEUTRAL + "|"
+
+        print "Text in negation:"
+        print text
         
         # unifies negation markers under the "nao" marker 
         text = re.sub(r"\b(jam[aá]is|nunca|sem|nem|nada)\b", " nao ", text, flags=re.I)
@@ -474,7 +479,8 @@ class LangDependency():
         xml = analyzer.run(new_text, 'noflush')
         xml_string = etree.tostring(xml)
         #print "XML_STRING"
-        #print xml_string
+        #print xml_string[]
+        print xml_string
 
         y = BeautifulSoup(xml_string, "lxml")
 
@@ -491,6 +497,9 @@ class LangDependency():
             #lemma = y.sentences.sentence.findAll("token")[i].analysis["lemma"]
             #pos = y.sentences.sentence.findAll("token")[i].analysis["tag"]
             lemma = y.sentences.sentence.findAll("token")[i]["lemma"]
+            if re.search(lemma, "/"):
+                lemma = y.sentences.sentence.findAll("token")[i]["form"]
+
             pos = y.sentences.sentence.findAll("token")[i]["tag"]
             new_token = "/".join([lemma, pos])
             t.append(new_token)
@@ -509,7 +518,6 @@ class LangDependency():
 
         return "~".join(t)
     
-    # DOUGLAS - TODO Implement other pre-processing steps here (portuguese correction, lemmatizing)
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
 
         if negation:

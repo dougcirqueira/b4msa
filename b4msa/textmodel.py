@@ -171,7 +171,7 @@ class TextModel:
                  lc=True,
                  del_dup1=True,
                  token_list=[-1],
-                 lang=None,
+                 lang="portuguese",
                  **kwargs
     ):
         self.strip_diac = strip_diac
@@ -192,10 +192,11 @@ class TextModel:
         self.token_list = token_list
 
         # DOUGLAS - Set up the self.lang to Brazilian Portuguese
-        self.lang = "portuguese"
+        #self.lang = "portuguese"
         
         if lang:
             self.lang = LangDependency(lang)
+            print "Lang Set Up"
         else:
             self.lang = None
             
@@ -267,6 +268,9 @@ class TextModel:
         # DOUGLAS - Specific language processing is True
         #if self.lang:
         # CONTINUE HERE!!!
+        print "SELF LANG"
+        print self.lang
+
         if True:
             text = self.lang.transform(text, **self.kwargs)
             

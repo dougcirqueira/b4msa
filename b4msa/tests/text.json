@@ -1,9 +1,10 @@
-{"text": "buenos dia b4msa", "klass": "POS"}
+{"text": "bom dia b4msa", "klass": "POS"}
 {"text": "excelente dia", "klass": "POS"}
-{"text": "buenas tardes", "klass": "POS"}
-{"text": "las vacas me deprimen", "klass": "NEG"}
-{"text": "odio los lunes", "klass": "NEG"}
-{"text": "odio el trafico", "klass": "NEG"}
-{"text": "la computadora", "klass": "NEU"}
-{"text": "la mesa", "klass": "NEU"}
-{"text": "la ventana", "klass": "NEU"}
+{"text": "boa tarde, Jack! Curti ontem!", "klass": "POS"}
+{"text": "as vacas me deprimen", "klass": "NEG"}
+{"text": "Odeio os nunes", "klass": "NEG"}
+{"text": "odeio o tráfico de drogaas", "klass": "NEG"}
+{"text": "não gosto do público do programa, amo o apresentador", "klass": "POS"}
+{"text": "o computador", "klass": "NEU"}
+{"text": "a mesa", "klass": "NEU"}
+{"text": "o ventilador", "klass": "NEU"}
