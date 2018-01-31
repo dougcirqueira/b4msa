@@ -444,27 +444,57 @@ class LangDependency():
         return "~".join(t)
 
     def portuguese_correction(self, text):
-        print self.abbreviation_words.keys()
-
-        #sys.exit()
-
         # DOUGLAS - Check if each word is valid from the Portuguese dictionary from Freeling
         tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
         t = []
         for tok in tokens:
-            print "TOKEN: %s" % tok
             if tok in self.dictionary_words:
-                print "STAND TOKEN: %s" % tok
                 t.append(tok)
             elif tok.strip() in self.abbreviation_words.keys():
-                print "ABBREVI TOKEN: %s" % tok
                 expansion = self.abbreviation_words[tok]
                 tokens_in_expansion = expansion.split(" ")
                 for token in tokens_in_expansion:
                     t.append(token)
             else:
-                # DOUGLAS - TODO: Reduce words with valid rules for Portuguese words formation
+                # DOUGLAS - TODO: Wait for Sabino feedback to
+                # maybe change way the reduction of vowels and consonants is performed before this step or here
+                # DOUGLAS - TODO: Test regex rules for reducing words with valid rules for Portuguese words formation, add exceptions
                 print "ERROR TOKEN: %s" % tok
+
+                if re.search("nb", tok, re.IGNORECASE):
+                    tok = re.sub("nb", "mb", tok, re.IGNORECASE)
+                if re.search("np", tok, re.IGNORECASE):
+                    tok = re.sub("np", "mp", tok, re.IGNORECASE)
+                if re.search("ss[a-z]c", tok, re.IGNORECASE):
+                    tok = re.sub("ss[a-z]c", "c[a-z]ss", tok, re.IGNORECASE)
+                if re.search("^lej", tok, re.IGNORECASE):
+                    tok = re.sub("^lej", "^leg", tok, re.IGNORECASE)
+                if re.search("^rej", tok, re.IGNORECASE) and re.search("rejei", tok, re.IGNORECASE) == None:
+                    tok = re.sub("^rej", "^reg", tok, re.IGNORECASE)
+                if re.search("^alj", tok, re.IGNORECASE):
+                    tok = re.sub("^alj", "^alg", tok, re.IGNORECASE)
+                if re.search("[a-z]+sinho$", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+sinho$", "[a-z]+zinho$", tok, re.IGNORECASE)
+                if re.search("[a-z]+sinha$", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+sinha$", "[a-z]+zinha$", tok, re.IGNORECASE)
+                if re.search("[a-z]+sito$", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+sito$", "[a-z]+zito$", tok, re.IGNORECASE)
+                if re.search("[a-z]+sita$", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+sita$", "[a-z]+zita$", tok, re.IGNORECASE)
+                if re.search("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", tok, re.IGNORECASE):
+                    tok = re.sub("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", \
+                        "[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]x", tok, re.IGNORECASE)
+                if re.search("[a-z]+anx", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+anx", "[a-z]+anch", tok, re.IGNORECASE)
+                if re.search("[a-z]+inx", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+inx", "[a-z]+inch", tok, re.IGNORECASE)
+                if re.search("[a-z]+onx", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+onx", "[a-z]+onch", tok, re.IGNORECASE)
+                if re.search("[a-z]+unx ", tok, re.IGNORECASE):
+                    tok = re.sub("[a-z]+unx", "[a-z]+unch", tok, re.IGNORECASE)
+                
+
+                print "ERROR TOKEN CORRECTED: %s" % tok
                 t.append(tok)
 
         return "~".join(t)
