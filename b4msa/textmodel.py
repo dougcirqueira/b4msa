@@ -259,8 +259,8 @@ class TextModel:
         elif self.usr_option == OPTION_GROUP:
             text = re.sub(r"@\S+", "_usr", text)
 
-        # DOUGLAS - TODO within norm_chars(text, self.strip_diac)
-        text = norm_chars(text, self.strip_diac)
+        # DOUGLAS - TODO Perform this step in lang_dependency 
+        #text = norm_chars(text, self.strip_diac)
         # DOUGLAS - emo_options is GROUP
         #text = self.emoclassifier.replace(text, self.emo_option)
         text = self.emoclassifier.replace(text, OPTION_GROUP)

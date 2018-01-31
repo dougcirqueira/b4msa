@@ -450,52 +450,64 @@ class LangDependency():
         for tok in tokens:
             if tok in self.dictionary_words:
                 t.append(tok)
+                continue
             elif tok.strip() in self.abbreviation_words.keys():
                 expansion = self.abbreviation_words[tok]
                 tokens_in_expansion = expansion.split(" ")
                 for token in tokens_in_expansion:
                     t.append(token)
-            else:
-                # DOUGLAS - TODO: Wait for Sabino feedback to
-                # maybe change way the reduction of vowels and consonants is performed before this step or here
-                # DOUGLAS - TODO: Test regex rules for reducing words with valid rules for Portuguese words formation, add exceptions
-                print "ERROR TOKEN: %s" % tok
 
-                if re.search("nb", tok, re.IGNORECASE):
-                    tok = re.sub("nb", "mb", tok, re.IGNORECASE)
-                if re.search("np", tok, re.IGNORECASE):
-                    tok = re.sub("np", "mp", tok, re.IGNORECASE)
-                if re.search("ss[a-z]c", tok, re.IGNORECASE):
-                    tok = re.sub("ss[a-z]c", "c[a-z]ss", tok, re.IGNORECASE)
-                if re.search("^lej", tok, re.IGNORECASE):
-                    tok = re.sub("^lej", "^leg", tok, re.IGNORECASE)
-                if re.search("^rej", tok, re.IGNORECASE) and re.search("rejei", tok, re.IGNORECASE) == None:
-                    tok = re.sub("^rej", "^reg", tok, re.IGNORECASE)
-                if re.search("^alj", tok, re.IGNORECASE):
-                    tok = re.sub("^alj", "^alg", tok, re.IGNORECASE)
-                if re.search("[a-z]+sinho$", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+sinho$", "[a-z]+zinho$", tok, re.IGNORECASE)
-                if re.search("[a-z]+sinha$", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+sinha$", "[a-z]+zinha$", tok, re.IGNORECASE)
-                if re.search("[a-z]+sito$", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+sito$", "[a-z]+zito$", tok, re.IGNORECASE)
-                if re.search("[a-z]+sita$", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+sita$", "[a-z]+zita$", tok, re.IGNORECASE)
-                if re.search("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", tok, re.IGNORECASE):
-                    tok = re.sub("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", \
-                        "[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]x", tok, re.IGNORECASE)
-                if re.search("[a-z]+anx", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+anx", "[a-z]+anch", tok, re.IGNORECASE)
-                if re.search("[a-z]+inx", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+inx", "[a-z]+inch", tok, re.IGNORECASE)
-                if re.search("[a-z]+onx", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+onx", "[a-z]+onch", tok, re.IGNORECASE)
-                if re.search("[a-z]+unx ", tok, re.IGNORECASE):
-                    tok = re.sub("[a-z]+unx", "[a-z]+unch", tok, re.IGNORECASE)
-                
+                continue
+            elif len(re.findall("a{2,}|b{3,}|c{3,}|d{3,}|e{2,}|f{3,}|g{3,}|h{3,}|i{2,}|j{3,}|k{3,}|l{3,}|m{3,}|n{3,}|o{2,}|p{3,}|q{3,}|r{3,}|s{3,}|t{3,}|u{2,}|v{3,}|x{3,}|w{3,}|y{3,}|z{3,}", tok)) > 0:
+                lengthenings = lengthenings = re.findall("a{2,}|b{3,}|c{3,}|d{3,}|e{2,}|f{3,}|g{3,}|h{3,}|i{2,}|j{3,}|k{3,}|l{3,}|m{3,}|n{3,}|o{2,}|p{3,}|q{3,}|r{3,}|s{3,}|t{3,}|u{2,}|v{3,}|x{3,}|w{3,}|y{3,}|z{3,}", tok)
+                # DOUGLAS - TODO Add exceptions such as "carro", or consider the size of the lengthening. Maybe implement reduction of letters and checking
+                # in the dict per letter. Add the option of intensification by allowing two repeated letters.
+                for lengthening in lengthenings:
+                    tok = re.subn(lengthening, lengthening[0], tok)[0]
 
-                print "ERROR TOKEN CORRECTED: %s" % tok
-                t.append(tok)
+                if tok in self.dictionary_words:
+                    t.append(tok)
+                    continue
+
+            
+            print "ERROR TOKEN: %s" % tok
+
+            if re.search("nb", tok, re.IGNORECASE):
+                tok = re.sub("nb", "mb", tok, re.IGNORECASE)
+            if re.search("np", tok, re.IGNORECASE):
+                tok = re.sub("np", "mp", tok, re.IGNORECASE)
+            if re.search("ss[a|e|i|o|u]c", tok, re.IGNORECASE):
+                vowel = re.findall("ss([a|e|i|o|u])c", tok, re.IGNORECASE)[0]
+                tok = re.sub("ss[a|e|i|o|u]c", "c" + vowel + "ss", tok, re.IGNORECASE)
+            if re.search("^lej", tok, re.IGNORECASE):
+                tok = re.sub("^lej", "leg", tok, re.IGNORECASE)
+            if re.search("^rej", tok, re.IGNORECASE) and re.search("^rejei", tok, re.IGNORECASE) == None:
+                tok = re.sub("^rej", "reg", tok, re.IGNORECASE)
+            if re.search("^alj", tok, re.IGNORECASE):
+                tok = re.sub("^alj", "alg", tok, re.IGNORECASE)
+            if re.search("[a-z]+sinho$", tok, re.IGNORECASE):
+                tok = re.sub("sinho$", "zinho", tok, re.IGNORECASE)
+            if re.search("[a-z]+sinha$", tok, re.IGNORECASE):
+                tok = re.sub("sinha$", "zinha", tok, re.IGNORECASE)
+            if re.search("[a-z]+sito$", tok, re.IGNORECASE):
+                tok = re.sub("sito$", "zito", tok, re.IGNORECASE)
+            if re.search("[a-z]+sita$", tok, re.IGNORECASE):
+                tok = re.sub("sita$", "zita", tok, re.IGNORECASE)
+            # DOUGLAS - TODO: Add exceptions
+            if re.search("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", tok, re.IGNORECASE):
+                tok = re.sub("ch", "x", tok, re.IGNORECASE)
+            if re.search("[a-z]+anx", tok, re.IGNORECASE):
+                tok = re.sub("anx", "anch", tok, re.IGNORECASE)
+            if re.search("[a-z]+inx", tok, re.IGNORECASE):
+                tok = re.sub("inx", "inch", tok, re.IGNORECASE)
+            if re.search("[a-z]+onx", tok, re.IGNORECASE):
+                tok = re.sub("onx", "onch", tok, re.IGNORECASE)
+            if re.search("[a-z]+unx", tok, re.IGNORECASE):
+                tok = re.sub("unx", "unch", tok, re.IGNORECASE)
+            
+
+            print "ERROR TOKEN CORRECTED: %s" % tok
+            t.append(tok)
 
         return "~".join(t)
 
@@ -550,11 +562,11 @@ class LangDependency():
     
     def transform(self, text, negation=False, stemming=False, stopwords=OPTION_NONE):
 
-        if negation:
-            text = self.negation(text)
+        if self.correction:
+            text = self.error_correction(text)
 
         print "----------------------------------------------------------------------------------------"
-        print "Text after Negation:"
+        print "Text after Error Correction:"
         print text
 
         if stemming:
@@ -564,18 +576,18 @@ class LangDependency():
         print "Text after Stemming:"
         print text
 
-        if self.correction:
-            text = self.error_correction(text)
-
-        print "----------------------------------------------------------------------------------------"
-        print "Text after Error Correction:"
-        print text
-
         if self.lem:
             text = self.lemmatizing(text)
 
         print "----------------------------------------------------------------------------------------"
         print "Text after Lemmmatizing:"
+        print text
+
+        if negation:
+            text = self.negation(text)
+
+        print "----------------------------------------------------------------------------------------"
+        print "Text after Negation:"
         print text
 
         if self.del_ent:
