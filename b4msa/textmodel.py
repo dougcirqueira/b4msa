@@ -129,9 +129,33 @@ def norm_chars(text, strip_diac=True, del_dup1=True):
         if u in ('\n', '\r', ' ', '\t'):
             u = '~'
 
-        # DOUGLAS - TODO Modify here for allowing only two occurences of a token for emphasis
         if del_dup1 and prev == u:
             continue
+
+        prev = u
+        L.append(u)
+
+    L.append('~')
+
+    return "".join(L)
+
+# DOUGLAS - Fixed the split tokens when they have !, ? or other punctuation signs
+# Example: "que carro!" tokenized provides "carro!" as token, when it should be "carro", "!"
+def split_text_tilde(text, strip_diac=True):
+    L = ['~']
+
+    prev = '~'
+    for u in unicodedata.normalize('NFD', unicode(text)):
+        if strip_diac:
+            o = ord(u)
+            if 0x300 <= o and o <= 0x036F:
+                continue
+            
+        if u in ('\n', '\r', ' ', '\t'):
+            u = '~' 
+
+        if u in ('!', '?', '.', ',', ';') and re.match("[a-z]", prev, re.IGNORECASE):
+            L.append('~')
 
         prev = u
         L.append(u)
@@ -259,18 +283,15 @@ class TextModel:
         elif self.usr_option == OPTION_GROUP:
             text = re.sub(r"@\S+", "_usr", text)
 
-        # DOUGLAS - TODO Perform this step in lang_dependency 
         #text = norm_chars(text, self.strip_diac)
+        # DOUGLAS - Only split text by tild char, but does not perform normalization here
+        text = split_text_tilde(text, self.strip_diac)
         # DOUGLAS - emo_options is GROUP
         #text = self.emoclassifier.replace(text, self.emo_option)
         text = self.emoclassifier.replace(text, OPTION_GROUP)
 
         # DOUGLAS - Specific language processing is True
         #if self.lang:
-        # CONTINUE HERE!!!
-        print "SELF LANG"
-        print self.lang
-
         if True:
             text = self.lang.transform(text, **self.kwargs)
             

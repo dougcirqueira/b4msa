@@ -76,12 +76,14 @@ class LangDependency():
         """
         Initializes the parameters for specific language
         """
-        # DOUGLAS - Included "brazilian_portuguese" language in self.languages
+        # DOUGLAS - Included "portuguese" language in self.languages
         self.languages = ["spanish", "english", "italian", "german", "portuguese"]
         self.lang = lang
         self.correction = True
         self.lem = True
         self.del_ent = True
+        self.lengthening_intens = False
+        self.exceptions_pt_correction_ch_x = ["recauchutar", "caucho"]
 
         if self.lang not in self.languages:
             raise LangDependencyError("Language not supported: " + lang)
@@ -152,7 +154,7 @@ class LangDependency():
                     continue
                 if line.startswith("#"):
                     continue
-                if re.match("[a-z]{1}", line, re.IGNORECASE):
+                if re.match("^[a-z]{1}$", line, re.IGNORECASE):
                     continue
                 Dictionary.append(line)
 
@@ -185,14 +187,17 @@ class LangDependency():
         """
         Applies the stemming process to `text` parameter
         """
-        
+
         tokens = re.split(r"~", text.strip())
         t = []
         for tok in tokens:
-            if re.search(r"^(@|#|_|~)", tok, flags=re.I):
+            token, tag = tok.split("/")
+            if re.search(r"^(@|#|_|~)", token, flags=re.I):
                 t.append(tok)
             else:
-                t.append(self.stemmer.stem(tok))
+                stem = self.stemmer.stem(token)
+                t.append(stem + "/" + tag)
+                #t.append(self.stemmer.stem(tok))
         return "~".join(t)
 
     # DOUGLAS - Lemmatizing for portuguese with freeling. Extract only lemmas from Freeling response
@@ -382,8 +387,6 @@ class LangDependency():
                _sNUM_TAG + "|" + _sNEGATIVE + "|" + \
                _sPOSITIVE + "|" + _sNEUTRAL + "|"
 
-        print "Text in negation:"
-        print text
         
         # unifies negation markers under the "nao" marker 
         text = re.sub(r"\b(jam[aá]is|nunca|sem|nem|nada)\b", " nao ", text, flags=re.I)
@@ -448,66 +451,92 @@ class LangDependency():
         tokens = re.split(r"~", text.strip()) # Text has the char "~" to indicate the space between tokens
         t = []
         for tok in tokens:
+            word_formation_rules = True
+
             if tok in self.dictionary_words:
                 t.append(tok)
-                continue
+                word_formation_rules = False
             elif tok.strip() in self.abbreviation_words.keys():
                 expansion = self.abbreviation_words[tok]
                 tokens_in_expansion = expansion.split(" ")
                 for token in tokens_in_expansion:
                     t.append(token)
 
-                continue
-            elif len(re.findall("a{2,}|b{3,}|c{3,}|d{3,}|e{2,}|f{3,}|g{3,}|h{3,}|i{2,}|j{3,}|k{3,}|l{3,}|m{3,}|n{3,}|o{2,}|p{3,}|q{3,}|r{3,}|s{3,}|t{3,}|u{2,}|v{3,}|x{3,}|w{3,}|y{3,}|z{3,}", tok)) > 0:
-                lengthenings = lengthenings = re.findall("a{2,}|b{3,}|c{3,}|d{3,}|e{2,}|f{3,}|g{3,}|h{3,}|i{2,}|j{3,}|k{3,}|l{3,}|m{3,}|n{3,}|o{2,}|p{3,}|q{3,}|r{3,}|s{3,}|t{3,}|u{2,}|v{3,}|x{3,}|w{3,}|y{3,}|z{3,}", tok)
-                # DOUGLAS - TODO Add exceptions such as "carro", or consider the size of the lengthening. Maybe implement reduction of letters and checking
-                # in the dict per letter. Add the option of intensification by allowing two repeated letters.
-                for lengthening in lengthenings:
-                    tok = re.subn(lengthening, lengthening[0], tok)[0]
+                word_formation_rules = False
+            elif len(re.findall("a{2,}|b{2,}|c{2,}|d{2,}|e{2,}|f{2,}|g{2,}|h{2,}|i{2,}|j{2,}|k{2,}|l{2,}|m{2,}|n{2,}|o{2,}|p{2,}|q{2,}|r{2,}|s{2,}|t{2,}|u{2,}|v{2,}|x{2,}|w{2,}|y{2,}|z{2,}", tok)) > 0:
+                lengthenings = re.findall("a{2,}|b{2,}|c{2,}|d{2,}|e{2,}|f{2,}|g{2,}|h{2,}|i{2,}|j{2,}|k{2,}|l{2,}|m{2,}|n{2,}|o{2,}|p{2,}|q{2,}|r{2,}|s{2,}|t{2,}|u{2,}|v{2,}|x{2,}|w{2,}|y{2,}|z{2,}", tok)
+                # DOUGLAS - Consider the size of the lengthening. Lengthening is reduced by at least two letters, with the 
+                # option to allow this repetition or remove it, as mentioned in the paper, to indicate intensification.
+                if self.lengthening_intens == True:
+                    for lengthening in lengthenings:
+                        len_leng = len(lengthening)
 
-                if tok in self.dictionary_words:
-                    t.append(tok)
-                    continue
+                        if len_leng > 2:
+                            tok = re.subn(lengthening, lengthening[0:2], tok)[0]
 
-            
-            print "ERROR TOKEN: %s" % tok
+                            if tok in self.dictionary_words:
+                                t.append(tok)
+                                word_formation_rules = False
+                else:
+                    for lengthening in lengthenings:
+                        len_leng = len(lengthening)
 
-            if re.search("nb", tok, re.IGNORECASE):
-                tok = re.sub("nb", "mb", tok, re.IGNORECASE)
-            if re.search("np", tok, re.IGNORECASE):
-                tok = re.sub("np", "mp", tok, re.IGNORECASE)
-            if re.search("ss[a|e|i|o|u]c", tok, re.IGNORECASE):
-                vowel = re.findall("ss([a|e|i|o|u])c", tok, re.IGNORECASE)[0]
-                tok = re.sub("ss[a|e|i|o|u]c", "c" + vowel + "ss", tok, re.IGNORECASE)
-            if re.search("^lej", tok, re.IGNORECASE):
-                tok = re.sub("^lej", "leg", tok, re.IGNORECASE)
-            if re.search("^rej", tok, re.IGNORECASE) and re.search("^rejei", tok, re.IGNORECASE) == None:
-                tok = re.sub("^rej", "reg", tok, re.IGNORECASE)
-            if re.search("^alj", tok, re.IGNORECASE):
-                tok = re.sub("^alj", "alg", tok, re.IGNORECASE)
-            if re.search("[a-z]+sinho$", tok, re.IGNORECASE):
-                tok = re.sub("sinho$", "zinho", tok, re.IGNORECASE)
-            if re.search("[a-z]+sinha$", tok, re.IGNORECASE):
-                tok = re.sub("sinha$", "zinha", tok, re.IGNORECASE)
-            if re.search("[a-z]+sito$", tok, re.IGNORECASE):
-                tok = re.sub("sito$", "zito", tok, re.IGNORECASE)
-            if re.search("[a-z]+sita$", tok, re.IGNORECASE):
-                tok = re.sub("sita$", "zita", tok, re.IGNORECASE)
-            # DOUGLAS - TODO: Add exceptions
-            if re.search("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", tok, re.IGNORECASE):
-                tok = re.sub("ch", "x", tok, re.IGNORECASE)
-            if re.search("[a-z]+anx", tok, re.IGNORECASE):
-                tok = re.sub("anx", "anch", tok, re.IGNORECASE)
-            if re.search("[a-z]+inx", tok, re.IGNORECASE):
-                tok = re.sub("inx", "inch", tok, re.IGNORECASE)
-            if re.search("[a-z]+onx", tok, re.IGNORECASE):
-                tok = re.sub("onx", "onch", tok, re.IGNORECASE)
-            if re.search("[a-z]+unx", tok, re.IGNORECASE):
-                tok = re.sub("unx", "unch", tok, re.IGNORECASE)
-            
+                        if len_leng > 2:
+                            
+                            tok = re.subn(lengthening, lengthening[0:2], tok)[0]
 
-            print "ERROR TOKEN CORRECTED: %s" % tok
-            t.append(tok)
+                            if tok in self.dictionary_words:
+                                t.append(tok)
+                                word_formation_rules = False
+                            else:
+                                tok = re.subn(lengthening[0:2], lengthening[0], tok)[0]
+                                if tok in self.dictionary_words:
+                                    t.append(tok)
+                                    word_formation_rules = False
+
+                        else:
+                            tok = re.subn(lengthening, lengthening[0], tok)[0]
+
+                            if tok in self.dictionary_words:
+                                t.append(tok)
+                                word_formation_rules = False
+
+
+            if word_formation_rules:
+                if re.search("nb", tok, re.IGNORECASE):
+                    tok = re.sub("nb", "mb", tok, re.IGNORECASE)
+                if re.search("np", tok, re.IGNORECASE):
+                    tok = re.sub("np", "mp", tok, re.IGNORECASE)
+                if re.search("ss[a|e|i|o|u]c", tok, re.IGNORECASE):
+                    vowel = re.findall("ss([a|e|i|o|u])c", tok, re.IGNORECASE)[0]
+                    tok = re.sub("ss[a|e|i|o|u]c", "c" + vowel + "ss", tok, re.IGNORECASE)
+                if re.search("^lej", tok, re.IGNORECASE):
+                    tok = re.sub("^lej", "leg", tok, re.IGNORECASE)
+                if re.search("^rej", tok, re.IGNORECASE) and re.search("^rejei", tok, re.IGNORECASE) == None:
+                    tok = re.sub("^rej", "reg", tok, re.IGNORECASE)
+                if re.search("^alj", tok, re.IGNORECASE):
+                    tok = re.sub("^alj", "alg", tok, re.IGNORECASE)
+                if re.search("[a-z]+sinho$", tok, re.IGNORECASE):
+                    tok = re.sub("sinho$", "zinho", tok, re.IGNORECASE)
+                if re.search("[a-z]+sinha$", tok, re.IGNORECASE):
+                    tok = re.sub("sinha$", "zinha", tok, re.IGNORECASE)
+                if re.search("[a-z]+sito$", tok, re.IGNORECASE):
+                    tok = re.sub("sito$", "zito", tok, re.IGNORECASE)
+                if re.search("[a-z]+sita$", tok, re.IGNORECASE):
+                    tok = re.sub("sita$", "zita", tok, re.IGNORECASE)
+                if re.search("[b|c|d|f|g|h|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z]{1}[a|e|o]{1}[i|u]ch", tok, re.IGNORECASE) \
+                and tok not in self.exceptions_pt_correction_ch_x:
+                    tok = re.sub("ch", "x", tok, re.IGNORECASE)
+                if re.search("[a-z]+anx", tok, re.IGNORECASE):
+                    tok = re.sub("anx", "anch", tok, re.IGNORECASE)
+                if re.search("[a-z]+inx", tok, re.IGNORECASE):
+                    tok = re.sub("inx", "inch", tok, re.IGNORECASE)
+                if re.search("[a-z]+onx", tok, re.IGNORECASE):
+                    tok = re.sub("onx", "onch", tok, re.IGNORECASE)
+                if re.search("[a-z]+unx", tok, re.IGNORECASE):
+                    tok = re.sub("unx", "unch", tok, re.IGNORECASE)
+                
+                t.append(tok)
 
         return "~".join(t)
 
@@ -520,20 +549,10 @@ class LangDependency():
         analyzer = Analyzer(config='pt.cfg', lang='pt')
         xml = analyzer.run(new_text, 'noflush')
         xml_string = etree.tostring(xml)
-        #print "XML_STRING"
-        #print xml_string[]
-        print xml_string
 
         y = BeautifulSoup(xml_string, "lxml")
 
-        #print "Y BEAUTISOUP"
-        #print y
-
-
-
         total_tokens = len(y.sentences.sentence.findAll("token"))
-
-        #print total_tokens
 
         for i in range(0,total_tokens):
             #lemma = y.sentences.sentence.findAll("token")[i].analysis["lemma"]
@@ -545,8 +564,6 @@ class LangDependency():
             pos = y.sentences.sentence.findAll("token")[i]["tag"]
             new_token = "/".join([lemma, pos])
             t.append(new_token)
-
-        #sys.exit()
 
         return "~".join(t)
 
@@ -569,11 +586,11 @@ class LangDependency():
         print "Text after Error Correction:"
         print text
 
-        if stemming:
-            text = self.stemming(text)
+        if negation:
+            text = self.negation(text)
 
         print "----------------------------------------------------------------------------------------"
-        print "Text after Stemming:"
+        print "Text after Negation:"
         print text
 
         if self.lem:
@@ -583,11 +600,12 @@ class LangDependency():
         print "Text after Lemmmatizing:"
         print text
 
-        if negation:
-            text = self.negation(text)
+        #if stemming:
+        if False:
+            text = self.stemming(text)
 
         print "----------------------------------------------------------------------------------------"
-        print "Text after Negation:"
+        print "Text after Stemming:"
         print text
 
         if self.del_ent:
@@ -608,7 +626,5 @@ class LangDependency():
         print "----------------------------------------------------------------------------------------"
         print "Text after Lexical Info Removal:"
         print text
-
-        #sys.exit()
 
         return text

@@ -84,7 +84,7 @@ def test_lang():
     #    "excelente dia xc",
     #    "el alma de la fiesta XD"
     #]
-    text = ["tomar Eguaa! vai tomar no cu pq jamais vou deixar d lado! Realmente sem pe nem cabeca!! :("]
+    text = ["vish, nada desse carro! tomar Eguaa! vai toooomar no cuuuuu pq jamais vou deixar d lado! Realmente sem pe nem cabbbecaaa!! :("]
 
     model = TextModel(text, **{
         "del_dup1": True,
@@ -104,7 +104,7 @@ def test_lang():
         "lang": "portuguese",
     })
     #text = "El alma de la fiesta :) conociendo la maquinaria @user bebiendo nunca manches que onda"
-    text = "tomar Eguaa! vai tomar no cu pq jamais vou deixar d lado! Realmente sem pe nem cabeca!! :("
+    text = "vish, nada desse carro! tomar Eguaa! vai toooomar no cuuuuu pq jamais vou deixar d lado! Realmente sem pe nem cabbbecaaa!! :("
     a = model.tokenize(text)
     b = ['_sw', 'alma', '_sw', '_sw', 'fiest', '_pos', 'conoc', '_sw', 'maquinari', '_usr', 'beb', 'no_manch', '_sw', 'onda']
     print a
